@@ -1,0 +1,194 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+export default function SignDetector({ onPrediction }) {
+    const [isModelLoaded, setIsModelLoaded] = useState(false);
+    const [error, setError] = useState(null);
+
+    // Refs
+    const modelRef = useRef(null);
+    const webcamRef = useRef(null);
+    const requestRef = useRef(null);
+    const canvasRef = useRef(null);
+    const ctxRef = useRef(null);
+
+    // State
+    const [isCameraOn, setIsCameraOn] = useState(true);
+
+    // Constants
+    const URL_PREFIX = "/model/";
+    const PREDICTION_THRESHOLD = 0.60;
+    const SIZE = 400;
+
+    // Load Model
+    useEffect(() => {
+        const loadModel = async () => {
+            try {
+                if (!window.tmPose) {
+                    throw new Error("Teachable Machine libraries not loaded.");
+                }
+                const modelURL = URL_PREFIX + "model.json";
+                const metadataURL = URL_PREFIX + "metadata.json";
+
+                console.log("Loading model...");
+                modelRef.current = await window.tmPose.load(modelURL, metadataURL);
+                setIsModelLoaded(true);
+                console.log("Model loaded!");
+            } catch (err) {
+                console.error("Model load error:", err);
+                setError(err.message);
+            }
+        };
+
+        const interval = setInterval(() => {
+            if (window.tmPose && !modelRef.current) {
+                clearInterval(interval);
+                loadModel();
+            }
+        }, 500);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Setup Webcam using tmPose.Webcam (same as legacy code)
+    useEffect(() => {
+        if (!isModelLoaded || !isCameraOn) {
+            // Stop webcam if camera is off
+            if (webcamRef.current) {
+                webcamRef.current.stop();
+                webcamRef.current = null;
+            }
+            if (requestRef.current) {
+                window.cancelAnimationFrame(requestRef.current);
+                requestRef.current = null;
+            }
+            return;
+        }
+
+        const setupWebcam = async () => {
+            try {
+                const flip = true; // Flip the webcam
+                webcamRef.current = new window.tmPose.Webcam(SIZE, SIZE, flip);
+                await webcamRef.current.setup();
+                await webcamRef.current.play();
+
+                // Setup canvas
+                const canvas = canvasRef.current;
+                if (canvas) {
+                    canvas.width = SIZE;
+                    canvas.height = SIZE;
+                    ctxRef.current = canvas.getContext("2d");
+                }
+
+                // Start the loop
+                requestRef.current = window.requestAnimationFrame(loop);
+            } catch (err) {
+                console.error("Webcam setup error:", err);
+                setError("Camera access failed: " + err.message);
+            }
+        };
+
+        setupWebcam();
+
+        return () => {
+            if (requestRef.current) {
+                window.cancelAnimationFrame(requestRef.current);
+                requestRef.current = null;
+            }
+            if (webcamRef.current) {
+                webcamRef.current.stop();
+                webcamRef.current = null;
+            }
+        };
+    }, [isModelLoaded, isCameraOn]);
+
+    // Loop
+    const loop = async () => {
+        if (webcamRef.current) {
+            webcamRef.current.update(); // Update the webcam frame
+            await predict();
+        }
+        requestRef.current = window.requestAnimationFrame(loop);
+    };
+
+    const predict = async () => {
+        if (!modelRef.current || !webcamRef.current || !ctxRef.current) return;
+
+        const ctx = ctxRef.current;
+
+        // Run pose estimation on the webcam canvas
+        const { pose, posenetOutput } = await modelRef.current.estimatePose(webcamRef.current.canvas);
+
+        // Get predictions
+        const prediction = await modelRef.current.predict(posenetOutput);
+
+        let highestProb = 0;
+        let className = "";
+        for (let i = 0; i < prediction.length; i++) {
+            if (prediction[i].probability > highestProb) {
+                highestProb = prediction[i].probability;
+                className = prediction[i].className;
+            }
+        }
+
+        // Filter out "Nothing" and similar
+        const ignoredClasses = ["Nothing", "nothing", "neutral", "background", "Neutral", "Background"];
+        if (highestProb > PREDICTION_THRESHOLD && !ignoredClasses.includes(className)) {
+            onPrediction({ className, probability: highestProb });
+        }
+
+        // Draw the webcam frame to our visible canvas
+        drawPose(pose, ctx);
+    };
+
+    const drawPose = (pose, ctx) => {
+        if (webcamRef.current && webcamRef.current.canvas) {
+            // Draw the webcam canvas to our display canvas
+            ctx.drawImage(webcamRef.current.canvas, 0, 0);
+
+            // Draw the keypoints and skeleton (exactly like legacy code)
+            if (pose) {
+                const minPartConfidence = 0.5;
+                window.tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+                window.tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+            }
+        }
+    };
+
+    return (
+        <div className="relative rounded-lg overflow-hidden bg-black shadow-lg group w-full h-full">
+            {!isModelLoaded && !error && (
+                <div className="absolute inset-0 flex items-center justify-center text-white p-4 z-10">
+                    Loading AI Model...
+                </div>
+            )}
+
+            {error && (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-100 text-red-600 p-4 z-10">
+                    Error: {error}
+                </div>
+            )}
+
+            <canvas
+                ref={canvasRef}
+                className={`block w-full h-full ${!isCameraOn ? 'opacity-0' : 'opacity-100'}`}
+            />
+
+            {!isCameraOn && (
+                <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-medium bg-slate-800">
+                    Camera Off
+                </div>
+            )}
+
+            {/* Controls Overlay */}
+            <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity items-end z-20">
+                <button
+                    onClick={() => setIsCameraOn(!isCameraOn)}
+                    className={`px-3 py-1 rounded-full text-white transition-all font-bold text-xs shadow-md ${isCameraOn ? 'bg-red-500 hover:bg-red-600' : 'bg-teal-500 hover:bg-teal-600'}`}
+                >
+                    {isCameraOn ? "Stop Camera" : "Start Camera"}
+                </button>
+            </div>
+        </div>
+    );
+}
