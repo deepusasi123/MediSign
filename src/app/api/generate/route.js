@@ -24,7 +24,7 @@ export async function POST(request) {
 RULES:
 1. Start with "I" or "My".
 2. Do not use the words "first person".
-3. Make it humaina and natural language
+3. Make it humane and natural language
 // 3. Keep it short.
 4. Don't over repeat same sentence for same words.
 5. Don't use the same worlds  multiple times in a sentence.
