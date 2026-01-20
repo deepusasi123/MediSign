@@ -131,9 +131,8 @@ export default function SignDetector({ onPrediction }) {
             }
         }
 
-        // Filter out "no_gesture" and similar
-        const ignoredClasses = ["No_gesture", "no_gesture", "neutral", "background", "Neutral", "Background"];
-        if (highestProb > PREDICTION_THRESHOLD && !ignoredClasses.includes(className)) {
+        // Send all predictions above threshold (filtering for NLP is done in PatientView)
+        if (highestProb > PREDICTION_THRESHOLD) {
             onPrediction({ className, probability: highestProb });
         }
 
