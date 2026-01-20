@@ -20,7 +20,7 @@ export default function PatientView({ isActive }) {
         const now = Date.now();
 
         // Filter out "no_gesture" and other noise classes
-        const ignoredClasses = ["No_gesture", "no_gesture", "neutral", "background", "Neutral", "Background"];
+        const ignoredClasses = ["No_gesture", "no_gesture", "No gesture", "no gesture", "neutral", "background", "Neutral", "Background"];
         if (ignoredClasses.includes(pred.className)) return;
 
         if (now - lastWordTime > DEBOUNCE_TIME) {

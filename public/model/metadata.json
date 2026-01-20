@@ -1,1 +1,28 @@
-{"tfjsVersion":"1.7.4","tmVersion":"0.8.6","packageVersion":"0.8.6","packageName":"@teachablemachine/pose","timeStamp":"2026-01-18T08:56:56.964Z","userMetadata":{},"modelName":"MediSign_Model_Train","labels":["blood_pressu...","cough","dizzy","ear","eyes","fever","no_gesture","pain","sore_throat"],"modelSettings":{"posenet":{"architecture":"MobileNetV1","outputStride":16,"inputResolution":257,"multiplier":0.75}}}
+{
+    "tfjsVersion": "1.7.4",
+    "tmVersion": "0.8.6",
+    "packageVersion": "0.8.6",
+    "packageName": "@teachablemachine/pose",
+    "timeStamp": "2026-01-18T08:56:56.964Z",
+    "userMetadata": {},
+    "modelName": "MediSign_Model_Train",
+    "labels": [
+        "blood pressure",
+        "cough",
+        "dizzy",
+        "ear",
+        "eyes",
+        "fever",
+        "no gesture",
+        "pain",
+        "sore throat"
+    ],
+    "modelSettings": {
+        "posenet": {
+            "architecture": "MobileNetV1",
+            "outputStride": 16,
+            "inputResolution": 257,
+            "multiplier": 0.75
+        }
+    }
+}
