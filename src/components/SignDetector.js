@@ -26,6 +26,7 @@ export default function SignDetector({ onPrediction }) {
     const [selectedCameraId, setSelectedCameraId] = useState(null);
     const [showCameraMenu, setShowCameraMenu] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isFrontCamera, setIsFrontCamera] = useState(false);
 
     // Detect mobile screen size
     useEffect(() => {
@@ -38,6 +39,23 @@ export default function SignDetector({ onPrediction }) {
 
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    // Detect if selected camera is front-facing
+    useEffect(() => {
+        if (selectedCameraId && availableCameras.length > 0) {
+            const selectedCamera = availableCameras.find(c => c.deviceId === selectedCameraId);
+            if (selectedCamera) {
+                const label = selectedCamera.label.toLowerCase();
+                // Front camera typically has 'front', 'user', 'facetime', or 'selfie' in the label
+                // Back camera has 'back', 'rear', or 'environment'
+                const isBack = label.includes('back') || label.includes('rear') || label.includes('environment');
+                const isFront = label.includes('front') || label.includes('user') || label.includes('facetime') || label.includes('selfie');
+
+                // If explicitly front, or not explicitly back (default to front for user-facing)
+                setIsFrontCamera(isFront || (!isBack && availableCameras.length > 1));
+            }
+        }
+    }, [selectedCameraId, availableCameras]);
 
     // Constants
     const URL_PREFIX = "/model/";
@@ -340,7 +358,7 @@ export default function SignDetector({ onPrediction }) {
             <canvas
                 ref={canvasRef}
                 className={`block w-full h-full ${!isCameraOn ? 'opacity-0' : 'opacity-100'}`}
-                style={isMobile ? { transform: 'scaleX(-1)' } : {}}
+                style={(isMobile && isFrontCamera) ? { transform: 'scaleX(-1)' } : {}}
             />
 
             {!isCameraOn && (
