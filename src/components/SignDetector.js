@@ -74,8 +74,15 @@ export default function SignDetector({ onPrediction }) {
                 setAvailableCameras(videoDevices);
 
                 // Set default camera if not already set
+                // Prefer back-facing camera (environment) as default
                 if (!selectedCameraId && videoDevices.length > 0) {
-                    setSelectedCameraId(videoDevices[0].deviceId);
+                    // Try to find back camera first
+                    const backCamera = videoDevices.find(d =>
+                        d.label.toLowerCase().includes('back') ||
+                        d.label.toLowerCase().includes('rear') ||
+                        d.label.toLowerCase().includes('environment')
+                    );
+                    setSelectedCameraId(backCamera ? backCamera.deviceId : videoDevices[0].deviceId);
                 }
 
                 console.log("Available cameras:", videoDevices.map(d => d.label || d.deviceId));
@@ -328,7 +335,7 @@ export default function SignDetector({ onPrediction }) {
                 </div>
             )}
 
-            {/* Controls Overlay */}
+            {/* Controls Overlay - Right Side */}
             <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity items-end z-20">
                 <button
                     onClick={() => setIsCameraOn(!isCameraOn)}
@@ -336,9 +343,11 @@ export default function SignDetector({ onPrediction }) {
                 >
                     {isCameraOn ? "Stop Camera" : "Start Camera"}
                 </button>
+            </div>
 
-                {/* Camera Selection Button */}
-                {availableCameras.length > 1 && (
+            {/* Camera Selection - Left Side */}
+            {availableCameras.length > 1 && (
+                <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                     <div className="relative">
                         <button
                             onClick={() => setShowCameraMenu(!showCameraMenu)}
@@ -351,7 +360,7 @@ export default function SignDetector({ onPrediction }) {
 
                         {/* Camera Dropdown Menu */}
                         {showCameraMenu && (
-                            <div className="absolute top-full right-0 mt-1 bg-slate-800 rounded-lg shadow-xl border border-slate-600 overflow-hidden min-w-[180px]">
+                            <div className="absolute top-full left-0 mt-1 bg-slate-800 rounded-lg shadow-xl border border-slate-600 overflow-hidden min-w-[180px]">
                                 {availableCameras.map((camera, index) => (
                                     <button
                                         key={camera.deviceId}
@@ -376,8 +385,8 @@ export default function SignDetector({ onPrediction }) {
                             </div>
                         )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }
