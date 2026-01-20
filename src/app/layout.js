@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "MediSign - Bidirectional Communication",
-  description: "Sign Language to Speech & Speech to Text",
+  title: "MediSign",
+  description: "A CPU-Based Real-Time Bidirectional Sign Language Communication System for Healthcare",
 };
 
 export default function RootLayout({ children }) {
