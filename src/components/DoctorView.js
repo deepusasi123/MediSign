@@ -12,7 +12,17 @@ export default function DoctorView({ isActive }) {
     const lastResultTimeRef = useRef(Date.now());
     const pauseCheckIntervalRef = useRef(null);
     const currentSentenceRef = useRef(""); // Keep a ref for the interval callback
+    const shouldRestartRef = useRef(false); // Flag to control auto-restart on mobile
+    const lastTranscriptRef = useRef(""); // To prevent word repetition
+    const isMobileRef = useRef(false); // Track if device is mobile
     const PAUSE_THRESHOLD = 3000; // 3 seconds
+
+    // Detect mobile device
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            isMobileRef.current = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+    }, []);
 
     // Keep ref in sync with state
     useEffect(() => {
@@ -33,6 +43,7 @@ export default function DoctorView({ isActive }) {
             setSentences(prev => [...prev, finalSentence]);
             setCurrentSentence("");
             currentSentenceRef.current = "";
+            lastTranscriptRef.current = ""; // Reset deduplication on sentence finalization
         }
     }, []);
 
@@ -42,15 +53,23 @@ export default function DoctorView({ isActive }) {
             if (!SpeechRecognition) return;
 
             const recognition = new SpeechRecognition();
-            recognition.continuous = true;
+
+            // Mobile browsers often don't support continuous mode well
+            // Use non-continuous mode on mobile and restart after each result
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            recognition.continuous = !isMobile; // Continuous on desktop, non-continuous on mobile
             recognition.interimResults = true;
             recognition.lang = "en-US";
+            recognition.maxAlternatives = 1;
 
             recognition.onstart = () => {
                 setIsListening(true);
                 lastResultTimeRef.current = Date.now();
 
                 // Start a timer to check for pauses
+                if (pauseCheckIntervalRef.current) {
+                    clearInterval(pauseCheckIntervalRef.current);
+                }
                 pauseCheckIntervalRef.current = setInterval(() => {
                     const now = Date.now();
                     const timeSinceLastResult = now - lastResultTimeRef.current;
@@ -63,33 +82,111 @@ export default function DoctorView({ isActive }) {
             };
 
             recognition.onend = () => {
-                setIsListening(false);
                 // Clear the pause check interval
                 if (pauseCheckIntervalRef.current) {
                     clearInterval(pauseCheckIntervalRef.current);
                     pauseCheckIntervalRef.current = null;
                 }
-                // Finalize any remaining sentence
-                finalizeSentence();
+
+                // On mobile, auto-restart if user hasn't manually stopped
+                if (isMobile && shouldRestartRef.current) {
+                    // Small delay before restarting to prevent rapid restart loops
+                    setTimeout(() => {
+                        if (shouldRestartRef.current && recognitionRef.current) {
+                            try {
+                                recognitionRef.current.start();
+                            } catch (e) {
+                                // Recognition might already be running or failed to start
+                                console.log("Recognition restart failed:", e.message);
+                                setIsListening(false);
+                                shouldRestartRef.current = false;
+                            }
+                        }
+                    }, 100);
+                } else {
+                    setIsListening(false);
+                    // Finalize any remaining sentence when manually stopped
+                    finalizeSentence();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.log("Speech recognition error:", event.error);
+
+                // Handle different error types
+                switch (event.error) {
+                    case 'no-speech':
+                        // No speech detected, just restart on mobile
+                        if (isMobile && shouldRestartRef.current) {
+                            // Will auto-restart via onend
+                        }
+                        break;
+                    case 'audio-capture':
+                        // Microphone not available
+                        setIsListening(false);
+                        shouldRestartRef.current = false;
+                        break;
+                    case 'not-allowed':
+                        // Permission denied
+                        setIsListening(false);
+                        shouldRestartRef.current = false;
+                        break;
+                    case 'network':
+                        // Network error - try to continue on mobile
+                        if (!isMobile) {
+                            setIsListening(false);
+                            shouldRestartRef.current = false;
+                        }
+                        break;
+                    case 'aborted':
+                        // Recognition was aborted - don't restart automatically
+                        break;
+                    default:
+                        // For other errors, don't auto-restart
+                        if (!isMobile) {
+                            setIsListening(false);
+                            shouldRestartRef.current = false;
+                        }
+                }
             };
 
             recognition.onresult = (event) => {
                 lastResultTimeRef.current = Date.now();
 
                 let finalTranscript = "";
+                let interimTranscript = "";
 
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     const text = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
                         finalTranscript += text;
+                    } else {
+                        interimTranscript += text;
                     }
                 }
 
                 if (finalTranscript) {
-                    setCurrentSentence(prev => {
-                        const newText = prev.trim() ? prev + " " + finalTranscript.trim() : finalTranscript.trim();
-                        return newText;
-                    });
+                    const trimmedTranscript = finalTranscript.trim();
+
+                    // Prevent duplicate/repeated words on mobile
+                    // Check if this transcript is too similar to the last one
+                    const lastWords = lastTranscriptRef.current.toLowerCase().split(' ').filter(w => w);
+                    const newWords = trimmedTranscript.toLowerCase().split(' ').filter(w => w);
+
+                    // If the new transcript starts with or matches the last transcript, skip it
+                    const isDuplicate = lastTranscriptRef.current && (
+                        trimmedTranscript.toLowerCase() === lastTranscriptRef.current.toLowerCase() ||
+                        (lastWords.length > 0 && newWords.length > 0 &&
+                            newWords.every((word, idx) => lastWords[idx] === word))
+                    );
+
+                    if (!isDuplicate) {
+                        setCurrentSentence(prev => {
+                            const newText = prev.trim() ? prev + " " + trimmedTranscript : trimmedTranscript;
+                            return newText;
+                        });
+                        lastTranscriptRef.current = trimmedTranscript;
+                    }
                 }
             };
 
@@ -100,15 +197,25 @@ export default function DoctorView({ isActive }) {
             if (pauseCheckIntervalRef.current) {
                 clearInterval(pauseCheckIntervalRef.current);
             }
+            shouldRestartRef.current = false;
         };
     }, [finalizeSentence]);
 
     const toggleListening = () => {
         if (isListening) {
+            // User manually stopping - prevent auto-restart on mobile
+            shouldRestartRef.current = false;
             recognitionRef.current?.stop();
         } else {
+            // User starting - enable auto-restart on mobile
+            shouldRestartRef.current = true;
             lastResultTimeRef.current = Date.now();
-            recognitionRef.current?.start();
+            lastTranscriptRef.current = ""; // Reset deduplication on fresh start
+            try {
+                recognitionRef.current?.start();
+            } catch (e) {
+                console.log("Failed to start recognition:", e.message);
+            }
         }
     };
 
