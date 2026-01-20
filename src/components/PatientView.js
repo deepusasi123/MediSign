@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Script from "next/script";
 import { Send, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SignDetector from "@/components/SignDetector";
