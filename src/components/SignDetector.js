@@ -358,7 +358,7 @@ export default function SignDetector({ onPrediction }) {
             <canvas
                 ref={canvasRef}
                 className={`block w-full h-full ${!isCameraOn ? 'opacity-0' : 'opacity-100'}`}
-                style={(isMobile && isFrontCamera) ? { transform: 'scaleX(-1)' } : {}}
+                style={(isMobile && !isFrontCamera) ? { transform: 'scaleX(-1)' } : {}}
             />
 
             {!isCameraOn && (
