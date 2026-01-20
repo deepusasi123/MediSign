@@ -25,6 +25,19 @@ export default function SignDetector({ onPrediction }) {
     const [availableCameras, setAvailableCameras] = useState([]);
     const [selectedCameraId, setSelectedCameraId] = useState(null);
     const [showCameraMenu, setShowCameraMenu] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Detect mobile screen size
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile(); // Check on mount
+        window.addEventListener('resize', checkMobile);
+
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Constants
     const URL_PREFIX = "/model/";
@@ -327,6 +340,7 @@ export default function SignDetector({ onPrediction }) {
             <canvas
                 ref={canvasRef}
                 className={`block w-full h-full ${!isCameraOn ? 'opacity-0' : 'opacity-100'}`}
+                style={isMobile ? { transform: 'scaleX(-1)' } : {}}
             />
 
             {!isCameraOn && (

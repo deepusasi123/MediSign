@@ -24,39 +24,41 @@ export default function Home() {
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Navbar */}
-      <header className="sticky top-0 z-50 glass border-b border-white/20 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-tr from-teal-500 to-blue-600 text-white p-2 rounded-lg shadow-lg">
-            <Sparkles size={20} />
+      <header className="sticky top-0 z-50 glass border-b border-white/20 px-3 sm:px-6 py-2 sm:py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="bg-gradient-to-tr from-teal-500 to-blue-600 text-white p-1.5 sm:p-2 rounded-lg shadow-lg">
+            <Sparkles size={16} className="sm:w-5 sm:h-5" />
           </div>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600">
+          <h1 className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600">
             MediSign
           </h1>
         </div>
 
         {/* Tab Switcher */}
-        <div className="bg-slate-200/50 p-1 rounded-xl flex gap-1 relative">
+        <div className="bg-slate-200/50 p-0.5 sm:p-1 rounded-lg sm:rounded-xl flex gap-0.5 sm:gap-1 relative">
           <button
             onClick={() => setActiveTab("patient")}
-            className={`relative z-10 px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'patient' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`relative z-10 px-3 sm:px-6 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 sm:gap-2 ${activeTab === 'patient' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <HandMetal size={16} /> Patient
+            <HandMetal size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline sm:inline">Patient</span>
           </button>
           <button
             onClick={() => setActiveTab("doctor")}
-            className={`relative z-10 px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'doctor' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`relative z-10 px-3 sm:px-6 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 sm:gap-2 ${activeTab === 'doctor' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <Stethoscope size={16} /> Doctor
+            <Stethoscope size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline sm:inline">Doctor</span>
           </button>
 
           {/* Sliding Indicator */}
           <motion.div
             layoutId="activeTab"
-            className="absolute inset-y-1 bg-white rounded-lg shadow-sm"
+            className="absolute inset-y-0.5 sm:inset-y-1 bg-white rounded-md sm:rounded-lg shadow-sm"
             initial={false}
             animate={{
-              x: activeTab === 'patient' ? 4 : '100%',
-              width: 'calc(50% - 4px)',
+              x: activeTab === 'patient' ? 2 : '100%',
+              width: 'calc(50% - 2px)',
               left: 0
             }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
