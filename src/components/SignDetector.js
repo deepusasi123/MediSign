@@ -13,12 +13,18 @@ export default function SignDetector({ onPrediction }) {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
 
+    // Temporal smoothing refs
+    const lastPredictionRef = useRef(null);  // Track last prediction label
+    const consecutiveCountRef = useRef(0);   // Count of consecutive same predictions
+    const confirmedClassRef = useRef(null);  // Currently confirmed class
+
     // State
     const [isCameraOn, setIsCameraOn] = useState(true);
 
     // Constants
     const URL_PREFIX = "/model/";
-    const PREDICTION_THRESHOLD = 0.60;
+    const PREDICTION_THRESHOLD = 0.60;      // Per-frame confidence threshold
+    const CONSECUTIVE_FRAMES_REQUIRED = 5;  // Frames needed to confirm a class
     const SIZE = 400;
 
     // Load Model
@@ -131,9 +137,30 @@ export default function SignDetector({ onPrediction }) {
             }
         }
 
-        // Send all predictions above threshold (filtering for NLP is done in PatientView)
+        // Temporal smoothing: Apply per-frame confidence threshold
         if (highestProb > PREDICTION_THRESHOLD) {
-            onPrediction({ className, probability: highestProb });
+            // Check if this is the same class as previous frame
+            if (className === lastPredictionRef.current) {
+                consecutiveCountRef.current += 1;
+            } else {
+                // Different class detected, reset the counter
+                lastPredictionRef.current = className;
+                consecutiveCountRef.current = 1;
+            }
+
+            // Confirm class only after CONSECUTIVE_FRAMES_REQUIRED consecutive frames
+            if (consecutiveCountRef.current >= CONSECUTIVE_FRAMES_REQUIRED) {
+                // Only emit if this is a new confirmed class (avoid repeated emissions)
+                if (className !== confirmedClassRef.current) {
+                    confirmedClassRef.current = className;
+                    onPrediction({ className, probability: highestProb });
+                }
+            }
+        } else {
+            // Below threshold: reset tracking
+            lastPredictionRef.current = null;
+            consecutiveCountRef.current = 0;
+            // Don't reset confirmedClassRef - we want to remember the last confirmed class
         }
 
         // Draw the webcam frame to our visible canvas
