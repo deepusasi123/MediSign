@@ -20,8 +20,8 @@ export default function PatientView({ isActive }) {
         setCurrentPrediction(pred);
         const now = Date.now();
 
-        // Filter out "Nothing" and other noise classes
-        const ignoredClasses = ["Nothing", "nothing", "neutral", "background", "Neutral", "Background"];
+        // Filter out "no_gesture" and other noise classes
+        const ignoredClasses = ["No_gesture", "no_gesture", "neutral", "background", "Neutral", "Background"];
         if (ignoredClasses.includes(pred.className)) return;
 
         if (now - lastWordTime > DEBOUNCE_TIME) {

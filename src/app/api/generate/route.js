@@ -40,11 +40,11 @@ Keywords: ear, pain
 Sentence: I have an ear ache.
 Keywords: ear
 Sentence: I feel discomfort in my ear.
-Keywords: sour_throat
+Keywords: sore_throat
 Sentence: I have a sore throat.
-Keywords: sour_throat, pain
+Keywords: sore_throat, pain
 Sentence: My throat is hurting.
-Keywords: sour_throat, pain
+Keywords: sore_throat, pain
 Sentence: I feel pain while swallowing.
 Keywords: cough
 Sentence: I am having a cough.

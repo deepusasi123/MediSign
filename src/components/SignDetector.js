@@ -131,8 +131,8 @@ export default function SignDetector({ onPrediction }) {
             }
         }
 
-        // Filter out "Nothing" and similar
-        const ignoredClasses = ["Nothing", "nothing", "neutral", "background", "Neutral", "Background"];
+        // Filter out "no_gesture" and similar
+        const ignoredClasses = ["No_gesture", "no_gesture", "neutral", "background", "Neutral", "Background"];
         if (highestProb > PREDICTION_THRESHOLD && !ignoredClasses.includes(className)) {
             onPrediction({ className, probability: highestProb });
         }
